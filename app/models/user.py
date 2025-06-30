@@ -6,21 +6,22 @@ from .base import BaseModel
 
 
 class User(BaseModel, table=True):
-    first_name: str
+    __tablename__ = "users"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
     last_name: str
-    email: str = Field(unique=True, index=True)
-    telephone: Optional[str] = None
-    password_hash: str
-    email_verified: bool = False
-    verification_token: Optional[str] = None
-    verification_expires_at: Optional[datetime] = None
+    second_last_name: str
+    email: str = Field(index=True, unique=True)
+    email_verified_at: Optional[datetime] = None
+    phone_number: Optional[str] = Field(default=None, unique=True)
+    password: str
+    two_factor_secret: Optional[str] = None
+    two_factor_recovery_codes: Optional[str] = None
+    two_factor_confirmed_at: Optional[datetime] = None
+    url: Optional[str] = Field(default="default.png")
+    remember_token: Optional[str] = None
 
-    refresh_tokens: List["RefreshToken"] = Relationship(back_populates="user")
-    password_reset_requests: List["PasswordReset"] = Relationship(back_populates="user")
-    email_verification: "EmailVerification" = Relationship(back_populates="user")
-    categories: List["Category"] = Relationship(back_populates="user")
-    budgets: List["Budget"] = Relationship(back_populates="user")
-    transactions: List["Transaction"] = Relationship(back_populates="user")
-    recurring_payments: List["RecurringPayment"] = Relationship(back_populates="user")
-    notifications: List["Notification"] = Relationship(back_populates="user")
 
+    #address_id: int = Field(foreign_key="addresses.id")
+    gender_id: Optional[int] = Field(default=None, foreign_key="genders.id")

@@ -2,6 +2,8 @@ from typing import Optional, List
 
 from sqlmodel import SQLModel, Field
 
+from app.schemas.image import ImageRead
+
 
 class ProductBase(SQLModel):
     name: str
@@ -25,7 +27,7 @@ class ProductUpdate(SQLModel):
 
 class ProductRead(ProductBase):
     id: int
-    images: List["ImageRead"] = []
+    images: List[ImageRead] = []
 
 
 class ProductFilter(SQLModel):

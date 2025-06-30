@@ -1,6 +1,6 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, Query, HTTPException, status
-from sqlmodel import Session, select
+from sqlmodel import Session, select, or_
 
 from app.models import Product
 from app.schemas.product import (
@@ -9,6 +9,34 @@ from app.schemas.product import (
 from app.session import get_session
 
 router = APIRouter(prefix="/products", tags=["products"])
+
+@router.get("/filter", response_model=List[ProductRead], summary="Filter products")
+def filter_products(
+    session: Session = Depends(get_session),
+    categories: Optional[List[int]] = Query(None),
+    genders: Optional[List[int]] = Query(None),
+    min_price: Optional[float] = Query(None),
+    max_price: Optional[float] = Query(None),
+    order_by: Optional[int] = Query(0)
+):
+    query = select(Product)
+    if categories:
+        query = query.where(Product.category_id.in_(categories))
+    if genders:
+        query = query.join(Product.genders).where(
+            or_(*[Product.genders.any(id=g) for g in genders])
+        )
+    if min_price is not None and max_price is not None:
+        query = query.where(Product.price.between(min_price, max_price))
+    if order_by == 1:
+        query = query.order_by(Product.name)
+    elif order_by == 2:
+        query = query.order_by(Product.price)
+    elif order_by == 3:
+        query = query.order_by(Product.price.desc())
+    else:
+        query = query.order_by(Product.id)
+    return session.exec(query).all()
 
 # LIST
 @router.get("/", response_model=List[ProductRead], summary="List products")
@@ -75,24 +103,4 @@ def delete_product(
     session.commit()
 
 # FILTER
-@router.post("/filter", response_model=List[ProductRead], summary="Filter products")
-def filter_products(
-    filters: ProductFilter,
-    session: Session = Depends(get_session)
-):
-    query = select(Product)
-    if filters.categories:
-        query = query.where(Product.category_id.in_(filters.categories))
-    if filters.genders:
-        query = query.join(Product.genders).where(Product.genders.any("id", filters.genders))
-    if filters.min_price is not None and filters.max_price is not None:
-        query = query.where(Product.price.between(filters.min_price, filters.max_price))
-    if filters.order_by == 1:
-        query = query.order_by(Product.name)
-    elif filters.order_by == 2:
-        query = query.order_by(Product.price)
-    elif filters.order_by == 3:
-        query = query.order_by(Product.price.desc())
-    else:
-        query = query.order_by(Product.id)
-    return session.exec(query).all()
+

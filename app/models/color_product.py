@@ -5,5 +5,6 @@ from app.models.base import BaseModel
 
 
 class ColorProduct(BaseModel, table=True):
-    product_id: Optional[int] = Field(default=None, foreign_key="product.id", primary_key=True)
-    color_id: Optional[int] = Field(default=None, foreign_key="color.id", primary_key=True)
+    __tablename__ = 'color_product'
+    product_id: Optional[int] = Field(default=None, foreign_key="products.id", primary_key=True)
+    color_id: Optional[int] = Field(default=None, foreign_key="colors.id", primary_key=True)

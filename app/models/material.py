@@ -7,8 +7,8 @@ from app.models.material_product import MaterialProduct
 
 
 class Material(BaseModel, table=True):
-    __tablename__ = 'material'
+    __tablename__ = 'materials'
     name: str
     products: List["Product"] = Relationship(
-        back_populates="materials", link_model=MaterialProduct
+        back_populates="materials", link_model=MaterialProduct,
     )

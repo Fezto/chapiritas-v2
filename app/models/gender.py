@@ -7,7 +7,7 @@ from app.models.gender_product import GenderProduct
 
 
 class Gender(BaseModel, table=True):
-    __tablename__ = 'gender'
+    __tablename__ = 'genders'
     name: str
     products: List["Product"] = Relationship(
         back_populates="genders", link_model=GenderProduct

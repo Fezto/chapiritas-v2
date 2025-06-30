@@ -7,7 +7,7 @@ from app.models.product_size import ProductSize
 
 
 class Size(BaseModel, table=True):
-    __tablename__ = 'size'
+    __tablename__ = 'sizes'
     name: str
     products: List["Product"] = Relationship(
         back_populates="sizes", link_model=ProductSize
