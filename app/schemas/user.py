@@ -1,26 +1,27 @@
 # app/schemas/user.py
-from typing import Optional
 from datetime import datetime
-from pydantic import EmailStr
+from typing import Optional
+from pydantic import EmailStr, Field
 from sqlmodel import SQLModel
 
 class UserBase(SQLModel):
-    first_name: str
+    name: str
     last_name: str
+    second_last_name: Optional[str] = None
     email: EmailStr
-    telephone: Optional[str] = None
+    phone_number: Optional[str] = None
 
 class UserCreate(UserBase):
-    password: str
+    password: str = Field(..., min_length=6)
+    # si necesitas forzar address_id aquí, puedes añadir:
+    address_id: int = Field(default=1)
 
 class UserRead(UserBase):
     id: int
-    email_verified: bool
-    created_on: datetime
-    modified_on: Optional[datetime]
-
-class UserUpdate(SQLModel):
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    telephone: Optional[str] = None
-    password: Optional[str] = None
+    email_verified_at: Optional[datetime] = None
+    url: Optional[str] = None
+    remember_token: Optional[str] = None
+    address_id: int
+    gender_id: Optional[int] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None

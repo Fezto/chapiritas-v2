@@ -21,7 +21,5 @@ class User(BaseModel, table=True):
     two_factor_confirmed_at: Optional[datetime] = None
     url: Optional[str] = Field(default="default.png")
     remember_token: Optional[str] = None
-
-
-    #address_id: int = Field(foreign_key="addresses.id")
+    address_id: int = Field(default=1)
     gender_id: Optional[int] = Field(default=None, foreign_key="genders.id")

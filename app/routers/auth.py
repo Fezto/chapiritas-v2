@@ -1,212 +1,142 @@
 # app/api/routers/auth.py
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlmodel import Session, select
-from datetime import datetime, timedelta
+import os
+from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlmodel import select
+from sqlalchemy.orm import Session
+import bcrypt
 
-from app.models import User, RefreshToken, PasswordReset, EmailVerification
 from app.session import get_session
-from app.schemas.user import UserCreate, UserRead
-from app.schemas.auth import (
-    LoginData,
-    Token,
-    RefreshTokenRequest,
-    ForgotPasswordRequest,
-    ResetPasswordRequest,
-    LogoutRequest
-)
-from app.utils.hash import get_password_hash, verify_password
-from app.utils.email import send_verification_email, send_reset_email
-from app.utils.tokens import create_access_token, create_refresh_token, decode_token
+from app.models.user import User
+from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse
+from app.utils.email import send_verification_email
+from app.utils.tokens import create_access_token
+from app.utils.verifier import make_verify_token, verify_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post(
-    "/register",
-    response_model=UserRead,
-    status_code=status.HTTP_201_CREATED,
-    operation_id="registerUser"                    # <- aquí
-)
+@router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(
-    *,
-    session: Session = Depends(get_session),
-    user_in: UserCreate
+    data: RegisterRequest,
+    session: Session = Depends(get_session)
 ):
+    # 1) Validar email único
+    if session.exec(select(User).where(User.email == data.email)).first():
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Email already registered")
+
+    # 2) Hash de contraseña
+    pw_hash = bcrypt.hashpw(data.password.encode(), bcrypt.gensalt()).decode()
+
+    # 3) Crear usuario (email_verified_at vendrá como NULL)
     user = User(
-        **user_in.model_dump(exclude_unset=True),
-        password_hash=get_password_hash(user_in.password),
-        email_verified=False
+        name=data.name,
+        last_name=data.last_name,
+        second_last_name=data.second_last_name or "",
+        email=data.email,
+        password=pw_hash,
+        address_id=1,  # Ajusta si necesitas otro default
     )
     session.add(user)
     session.commit()
     session.refresh(user)
 
-    verification = EmailVerification(
-        user_id=user.id,
-        token=create_refresh_token({"sub": str(user.id)}),
-        expires_at=datetime.utcnow() + timedelta(hours=24)
+    # 4) Generar token firmado para verificar email
+    token = make_verify_token(user.id)
+    base = os.getenv("API_URL", "http://localhost:8000")
+    verify_url = f"{base}/auth/verify-email?token={token}"
+    resend_url = f"{base}/auth/resend-verification?token={token}"
+
+    # 5) Enviar correo con la plantilla
+    await send_verification_email(
+        email=user.email,
+        verify_url=verify_url,
+        resend_url=resend_url
     )
-    session.add(verification)
-    session.commit()
 
-    await send_verification_email(user.email, verification.token)
-    return user
+    return {"msg": "Revisa tu correo para verificar tu cuenta"}
 
 
-@router.post(
-    "/login",
-    response_model=Token,
-    operation_id="loginUser"                       # <- aquí
-)
-def login(
-    *,
-    session: Session = Depends(get_session),
-    data: LoginData
-):
-    user = session.exec(select(User).where(User.email == data.email)).one_or_none()
-
-    if not user or not verify_password(data.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-
-    if not user.email_verified:
-        raise HTTPException(status_code=400, detail="Email not verified")
-
-    access_token = create_access_token({"sub": str(user.id)})
-    refresh_token = create_refresh_token({"sub": str(user.id)})
-
-    db_rt = RefreshToken(
-        user_id=user.id,
-        token=refresh_token,
-        expires_at=datetime.utcnow() + timedelta(days=7)
-    )
-    session.add(db_rt)
-    session.commit()
-
-    return Token(access_token=access_token, refresh_token=refresh_token)
-
-
-@router.post(
-    "/refresh",
-    response_model=Token,
-    operation_id="refreshTokens"                   # <- aquí
-)
-def refresh_tokens(
-    *,
-    session: Session = Depends(get_session),
-    req: RefreshTokenRequest
-):
-    payload = decode_token(req.refresh_token)
-    rt = session.exec(select(RefreshToken).where(RefreshToken.token == req.refresh_token)).one_or_none()
-    if not rt or rt.revoked or rt.expires_at < datetime.utcnow():
-        raise HTTPException(status_code=401, detail="Invalid refresh token")
-
-    user_id = int(payload["sub"])
-    access_token = create_access_token({"sub": str(user_id)})
-    new_refresh = create_refresh_token({"sub": str(user_id)})
-
-    rt.revoked = True
-    session.add(rt)
-    session.commit()
-
-    nr = RefreshToken(
-        user_id=user_id,
-        token=new_refresh,
-        expires_at=datetime.utcnow() + timedelta(days=7)
-    )
-    session.add(nr)
-    session.commit()
-
-    return Token(access_token=access_token, refresh_token=new_refresh)
-
-
-@router.get(
-    "/verify-email",
-    status_code=status.HTTP_200_OK,
-    operation_id="verifyEmail"                     # <- aquí
-)
+@router.get("/verify-email", status_code=status.HTTP_200_OK)
 def verify_email(
-    *,
-    session: Session = Depends(get_session),
-    token: str = Query(...)
+    token: str = Query(...),
+    session: Session = Depends(get_session)
 ):
-    ev = session.exec(select(EmailVerification).where(EmailVerification.token == token)).one_or_none()
-    if not ev or ev.expires_at < datetime.utcnow() or ev.used:
-        raise HTTPException(status_code=400, detail="Invalid or expired token")
+    try:
+        user_id = verify_token(token)
+    except Exception:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Token inválido o expirado")
 
-    user = session.get(User, ev.user_id)
-    user.email_verified = True
-    ev.used = True
-    session.add_all([user, ev])
+    user = session.get(User, user_id)
+    if not user:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuario no encontrado")
+
+    # Marcar email verificado
+    user.email_verified_at = datetime.utcnow()
+    session.add(user)
     session.commit()
-    return {"ok": True}
+
+    return {"ok": True, "message": "Correo verificado correctamente!"}
 
 
-@router.post(
-    "/forgot-password",
-    status_code=status.HTTP_200_OK,
-    operation_id="forgotPassword"                  # <- aquí
-)
-async def forgot_password(
-    *,
-    session: Session = Depends(get_session),
-    req: ForgotPasswordRequest
+@router.get("/resend-verification", status_code=status.HTTP_200_OK)
+async def resend_verification(
+    token: str = Query(...),
+    session: Session = Depends(get_session)
 ):
-    user = session.exec(select(User).where(User.email == req.email)).one_or_none()
-    if user:
-        pr = PasswordReset(
-            user_id=user.id,
-            token=create_refresh_token({"sub": str(user.id)}),
-            expires_at=datetime.utcnow() + timedelta(hours=1),
-        )
-        session.add(pr)
-        session.commit()
-        await send_reset_email(user.email, pr.token)
-    return {"ok": True}
+    # Validar token igual que en /verify-email
+    try:
+        user_id = verify_token(token)
+    except Exception:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Token inválido o expirado")
+
+    user = session.get(User, user_id)
+    if not user:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuario no encontrado")
+
+    # Generar nuevo token y URLs
+    new_token = make_verify_token(user.id)
+    base = os.getenv("API_URL", "http://localhost:8000")
+    new_verify = f"{base}/auth/verify-email?token={new_token}"
+    new_resend = f"{base}/auth/resend-verification?token={new_token}"
+
+    await send_verification_email(
+        email=user.email,
+        verify_url=new_verify,
+        resend_url=new_resend
+    )
+
+    return {"msg": "Se ha enviado un nuevo enlace de verificación"}
 
 
-@router.post(
-    "/reset-password",
-    status_code=status.HTTP_200_OK,
-    operation_id="resetPassword"                   # <- aquí
-)
-def reset_password(
-    *,
-    session: Session = Depends(get_session),
-    req: ResetPasswordRequest
+@router.post("/login", response_model=TokenResponse)
+def login(
+    data: LoginRequest,
+    session: Session = Depends(get_session)
 ):
-    pr = session.exec(select(PasswordReset).where(PasswordReset.token == req.token)).one_or_none()
-    if not pr or pr.used or pr.expires_at < datetime.utcnow():
-        raise HTTPException(status_code=400, detail="Invalid or expired token")
+    # 1) Buscar usuario
+    user = session.exec(select(User).where(User.email == data.email)).one_or_none()
+    if not user or not bcrypt.checkpw(data.password.encode(), user.password.encode()):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Credenciales inválidas")
 
-    user = session.get(User, pr.user_id)
-    user.password_hash = get_password_hash(req.password)
-    pr.used = True
-    session.add_all([user, pr])
-    session.commit()
-    return {"ok": True}
-
-
-@router.post(
-    "/logout",
-    status_code=status.HTTP_200_OK,
-    summary="Logout",
-    operation_id="logoutUser"                      # <- aquí
-)
-def logout(
-    *,
-    session: Session = Depends(get_session),
-    req: LogoutRequest
-):
-    rt = session.exec(select(RefreshToken).where(RefreshToken.token == req.refresh_token)).one_or_none()
-
-    if not rt or rt.revoked:
+    # 2) Verificar que el email haya sido confirmado
+    if not user.email_verified_at:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid refresh token"
+            status.HTTP_403_FORBIDDEN,
+            "Debes verificar tu correo antes de iniciar sesión"
         )
 
-    rt.revoked = True
-    session.add(rt)
-    session.commit()
+    # 3) Generar JWT de acceso
+    access_token = create_access_token({"sub": str(user.id)})
+    return TokenResponse(access_token=access_token)
 
-    return {"ok": True}
+
+@router.post("/logout", status_code=status.HTTP_200_OK)
+def logout():
+    """
+    Como usamos JWT sin estado en el servidor,
+    para 'logout' basta con que el cliente borre su token.
+    Si implementas refresh-tokens almacenados, aquí podrías
+    marcar el token como revocado en base de datos.
+    """
+    return {"msg": "Has cerrado sesión correctamente"}

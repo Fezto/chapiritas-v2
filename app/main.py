@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import lifespan
 from app.routers.product import router as products_router
+from app.routers.auth import router as auth_router
 
 
 app = FastAPI(lifespan=lifespan)
@@ -18,7 +19,7 @@ app.add_middleware(
 
 # Lista de routers
 routers = [
-    products_router
+    products_router, auth_router
 ]
 
 # Incluir todos los routers
