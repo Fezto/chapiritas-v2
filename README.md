@@ -1,19 +1,7 @@
-# 👟 Chapiritas V2
-_La API de Chacharitas para traer tu sitio favorito del navegador a tu celular_
+# 👟 Chapiritas Reload
 
-Chapiritas es una  API REST moderna y robusta para el e-commerce de chacharitas, un sitio web que tiene como propósito la compra y venta de productos de cuidado de bebé de segunda mano.
-
-La API está desarrollada con FastAPI y SQLModel. Esta aplicación proporciona todas las funcionalidades necesarias para gestionar un catálogo de productos, usuarios y autenticación, los cuales son los únicos módulos con los que la app móvil estará funcionando por el momento.
-
-##  FAQ
-
-- **"¿Qué pasó con chapiritas V1?"**
-  - Fue una versión preliminar también hecha con FastAPI cuando estabamos empezando a aprenderlo. Si bien esta API abarcaba todos los módulos de Chacharitas algunos de los endpoints no funcionaban, además de que varios esquemas y modelos estaban desactualizados conforme a versiones anteriores de la base de datos. Por eso se tomó la decisión de rehacerlo.
-- **"¿Qué tecnologías se utilizan en el proyecto?"**
-  - La columna vertebral del proyecto se conforma de 2 componentes principales: FastAPI y SQLModel, este último trabajando detrás de bambalinas con SQLAlchemy y Pydantic. Fuera de estas librerías anteriormente mencionadas, el proyecto utiliza otras librerías que ocupan un rol secundario como Jinja2 para las plantillas de los correos y FastAPI Mail para su envío.
-- **"¿Hay algo importante que necesite saber antes de ejecutar el proyecto?"**
-  - Los modelos de SQLModel dentro del proyecto están hechos para trabajar con las tablas que genera la versión web de Chacharitas por medio de las migraciones de Laravel, por lo que realmente esta API jamás creará por si sola la base de datos. El único motivo por el cual se crearon los modelos fue para poder facilitar la generación de las rutas 
-  
+Una API REST moderna y robusta para e-commerce de calzado, desarrollada con FastAPI y SQLModel. Esta aplicación
+proporciona todas las funcionalidades necesarias para gestionar un catálogo de productos, usuarios, autenticación y más.
 
 ## 🚀 Características
 
@@ -30,64 +18,77 @@ La API está desarrollada con FastAPI y SQLModel. Esta aplicación proporciona t
 
 ## 📋 Requisitos Previos
 
-- Python 3.9 o superior
+- Python 3.12 o superior
 - MySQL Server
 - pip (gestor de paquetes de Python)
 
 ## 🛠️ Instalación
 
-1. **Clona el repositorio**
-   ```bash
-   git clone <url-del-repositorio>
-   cd chapiritas-reload
-   ```
+### I. ¿Chacharitas Web funciona?
 
-2. **Crea un entorno virtual**
-   ```bash
-   python -m venv venv
-   venv\Scripts\activate  # En Windows
-   # source venv/bin/activate  # En Linux/Mac
-   ```
-
-3. **Instala las dependencias**
-   ```bash
-   pip install fastapi uvicorn sqlmodel mysql-connector-python python-dotenv bcrypt python-jose[cryptography] python-multipart jinja2
-   ```
-
-4. **Configura las variables de entorno**
-   
-   Crea un archivo `.env` en la raíz del proyecto:
-   ```env
-   DATABASE_USER=tu_usuario_mysql
-   DATABASE_HOST=localhost
-   DATABASE_PASSWORD=tu_contraseña_mysql
-   DATABASE_NAME=chapiritas_db
-   SECRET_KEY=tu_clave_secreta_jwt
-   ALGORITHM=HS256
-   ACCESS_TOKEN_EXPIRE_MINUTES=30
-   
-   # Configuración de email (opcional para verificación)
-   SMTP_SERVER=smtp.gmail.com
-   SMTP_PORT=587
-   SMTP_USER=tu_email@gmail.com
-   SMTP_PASSWORD=tu_contraseña_app
-   ```
-
-5. **Crea la base de datos**
+**Asegurate** de tener la versión web (Laravel) de chacharitas corriendo correctamente, ya que la base de datos con la que interactúa esta API **se crea a partir de las migraciones de Laravel**
+ 
+1. Verifica que la base de datos que utiliza la página existe dentro de tu Sistema Gestor de Base de Datos local (como Workbench)
    ```sql
-   CREATE DATABASE chapiritas_db;
+   USE chacharitas; -- El nombre de la base de datos puede variar
    ```
-
-## 🚀 Ejecución
-
-1. **Inicia el servidor de desarrollo**
+2. Si existe la base de datos, Ejecuta npm run dev para correr el servidor de pruebas de Vite
    ```bash
-   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+   npm run dev
    ```
+2. Ejecuta php artisan serve para correr la página perse
+    ```bash
+    php artisan serve
+    ```
+   
+3. Interactúa con la  página y verifica en general si funciona. En caso de que no, revisa la documentación de Chacharitas (Web) para ver paso a paso como instalar el programa y los posibles pitfalls en el proceso.
 
-2. **Accede a la documentación**
-   - Swagger UI: http://localhost:8000/docs
-   - ReDoc: http://localhost:8000/redoc
+### II. Ejecutando la API
+
+Para poder alimentar con la base de datos de Laravel a Chacharitas App se creó una API que le proporcione a la aplicación móvil toda la información que pudiese llegar a necesitar. Su instalación es la siguiente
+
+1. Clona el repositorio
+   ```bash
+   git clone https://github.com/Fezto/chapiritas-v2.git
+   ```
+2. Genera un entorno virtual e instala todas las dependencias
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Ejecuta la API
+    ```bash
+    fastapi run
+    ```
+4. Dentro de la raíz del proyecto, genera tu archivo .env y llena la siguiente información
+    ```dotenv
+    DATABASE_USER=root
+    DATABASE_HOST=localhost
+    DATABASE_PASSWORD='<Inserta tu contraseña de MySQL aquí>'
+    DATABASE_NAME=chacharitas # Puede variar si colocaste otro nombre
+
+    JWT_SECRET='<Coloca un string cualquiera aquí>'
+    JWT_ALGORITHM=HS256
+    ACCESS_TOKEN_EXPIRE_MINUTE=15
+    REFRESH_TOKEN_EXPIRE_DAYS=7
+
+    MAIL_HOST=smtp.mailgun.org
+    MAIL_PORT=587
+    MAIL_USERNAME='<Cámbialo con lo que se te comparta'
+    MAIL_PASSWORD='<Cámbialo con lo que se te comparta'
+    MAIL_ENCRYPTION=tls
+    MAIL_FROM_ADDRESS=postmaster@mail.chacharitas.org
+    MAIL_FROM_NAME="Chacharitas"
+
+    #API_URL=https://api.chacharitas.org
+    API_URL=http://localhost:8000
+    ```
+5. Accede a la documentación
+    - Swagger UI: http://localhost:8000/docs
+    - ReDoc: http://localhost:8000/redoc
+
+
+
+    
 
 ## 📁 Estructura del Proyecto
 
@@ -142,11 +143,13 @@ app/
 ## 🔌 Endpoints Principales
 
 ### Autenticación
+
 - `POST /auth/register` - Registro de usuario
 - `POST /auth/login` - Inicio de sesión
 - `GET /auth/verify-email` - Verificación de email
 
 ### Productos
+
 - `GET /products/` - Listar productos
 - `GET /products/filter` - Filtrar productos
 - `POST /products/` - Crear producto
@@ -155,18 +158,21 @@ app/
 - `DELETE /products/{id}` - Eliminar producto
 
 ### Usuarios
+
 - `GET /users/me` - Perfil del usuario actual
 - `PUT /users/me` - Actualizar perfil
 
 ## 🔍 Filtros de Productos
 
 La API permite filtrar productos por:
+
 - **Categorías** (IDs de categorías)
 - **Géneros** (IDs de géneros)
 - **Rango de precios** (mínimo y máximo)
 - **Ordenamiento** (precio, nombre, fecha)
 
 Ejemplo de uso:
+
 ```bash
 GET /products/filter?categories=1,2&min_price=50&max_price=200&order_by=1
 ```
@@ -174,16 +180,19 @@ GET /products/filter?categories=1,2&min_price=50&max_price=200&order_by=1
 ## 🏗️ Modelos de Datos
 
 ### Usuario (User)
+
 - ID, nombre, email, contraseña
 - Estado de verificación de email
 - Timestamps de creación/actualización
 
 ### Producto (Product)
+
 - Información básica (nombre, precio, cantidad, descripción)
 - Relaciones con marca, categoría, usuario
 - Múltiples imágenes, colores, materiales, tallas, géneros
 
 ### Entidades Relacionadas
+
 - **Brand**: Marcas de productos
 - **Category**: Categorías de productos
 - **Color**: Colores disponibles
@@ -236,6 +245,7 @@ gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
 ## 🧪 Testing
 
 Para ejecutar pruebas (cuando estén disponibles):
+
 ```bash
 pytest
 ```
