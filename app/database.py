@@ -1,16 +1,16 @@
-# database.py
-
 from fastapi import FastAPI
 from sqlalchemy import create_engine
-from sqlmodel import SQLModel
+from sqlmodel import Session, SQLModel
 
 from app.config import DATABASE_URL
 from app import models
 
-# Inicialización del motor de la base de datos
 engine = create_engine(DATABASE_URL)
 
-# Función para manejar el ciclo de vida de la aplicación
+def get_session():
+    with Session(engine) as session:
+        yield session
+
 def lifespan(app: FastAPI):
     print("Creating database tables...")
     yield
