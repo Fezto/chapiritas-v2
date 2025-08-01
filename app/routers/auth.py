@@ -1,7 +1,7 @@
 # app/api/routers/auth.py
 import os
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, BackgroundTasks
 from sqlmodel import select
 from sqlalchemy.orm import Session
 import bcrypt
@@ -18,8 +18,9 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(
-    data: RegisterRequest,
-    session: Session = Depends(get_session)
+        data: RegisterRequest,
+        background_tasks: BackgroundTasks,
+        session: Session = Depends(get_session)
 ):
     # 1) Validar email único
     if session.exec(select(User).where(User.email == data.email)).first():
@@ -41,14 +42,14 @@ async def register(
     session.commit()
     session.refresh(user)
 
-    # 4) Generar token firmado para verificar email
     token = make_verify_token(user.id)
     base = os.getenv("API_URL", "http://localhost:8000")
     verify_url = f"{base}/auth/verify-email?token={token}"
     resend_url = f"{base}/auth/resend-verification?token={token}"
 
-    # 5) Enviar correo con la plantilla
-    await send_verification_email(
+    # ✅ Enviar el correo en segundo plano
+    background_tasks.add_task(
+        send_verification_email,
         email=user.email,
         verify_url=verify_url,
         resend_url=resend_url
@@ -59,8 +60,8 @@ async def register(
 
 @router.get("/verify-email", status_code=status.HTTP_200_OK)
 def verify_email(
-    token: str = Query(...),
-    session: Session = Depends(get_session)
+        token: str = Query(...),
+        session: Session = Depends(get_session)
 ):
     try:
         user_id = verify_token(token)
@@ -81,8 +82,8 @@ def verify_email(
 
 @router.get("/resend-verification", status_code=status.HTTP_200_OK)
 async def resend_verification(
-    token: str = Query(...),
-    session: Session = Depends(get_session)
+        token: str = Query(...),
+        session: Session = Depends(get_session)
 ):
     # Validar token igual que en /verify-email
     try:
@@ -111,8 +112,8 @@ async def resend_verification(
 
 @router.post("/login", response_model=TokenResponse)
 def login(
-    data: LoginRequest,
-    session: Session = Depends(get_session)
+        data: LoginRequest,
+        session: Session = Depends(get_session)
 ):
     # 1) Buscar usuario
     user = session.exec(select(User).where(User.email == data.email)).one_or_none()
