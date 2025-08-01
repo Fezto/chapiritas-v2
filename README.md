@@ -1,7 +1,6 @@
-# 👟 Chapiritas Reload
+# 👟 Chacharitas API
 
-Una API REST moderna y robusta para e-commerce de calzado, desarrollada con FastAPI y SQLModel. Esta aplicación
-proporciona todas las funcionalidades necesarias para gestionar un catálogo de productos, usuarios, autenticación y más.
+Una API REST moderna y robusta para e-commerce de calzado, desarrollada con FastAPI y SQLModel. Esta aplicación proporciona todas las funcionalidades necesarias para gestionar un catálogo de productos, usuarios, autenticación y más.
 
 ## 🚀 Características
 
@@ -18,77 +17,78 @@ proporciona todas las funcionalidades necesarias para gestionar un catálogo de 
 
 ## 📋 Requisitos Previos
 
-- Python 3.12 o superior
+- Python 3.9 o superior
 - MySQL Server
 - pip (gestor de paquetes de Python)
 
 ## 🛠️ Instalación
 
-### I. ¿Chacharitas Web funciona?
+1. **Clona el repositorio**
 
-**Asegurate** de tener la versión web (Laravel) de chacharitas corriendo correctamente, ya que la base de datos con la que interactúa esta API **se crea a partir de las migraciones de Laravel**
- 
-1. Verifica que la base de datos que utiliza la página existe dentro de tu Sistema Gestor de Base de Datos local (como Workbench)
+   ```bash
+   git clone <url-del-repositorio>
+   cd chapiritas-reload
+   ```
+
+2. **Crea un entorno virtual**
+
+   ```bash
+   python -m venv venv
+   venv\Scripts\activate  # En Windows
+   # source venv/bin/activate  # En Linux/Mac
+   ```
+
+3. **Instala las dependencias**
+
+   ```bash
+   pip install fastapi uvicorn sqlmodel mysql-connector-python python-dotenv bcrypt python-jose[cryptography] python-multipart jinja2 requests
+   ```
+
+4. **Configura las variables de entorno**
+
+   Crea un archivo `.env` en la raíz del proyecto:
+
+   ```env
+   DATABASE_USER=tu_usuario_mysql
+   DATABASE_HOST=localhost
+   DATABASE_PASSWORD=tu_contraseña_mysql
+   DATABASE_NAME=chapiritas_db
+   SECRET_KEY=tu_clave_secreta_jwt
+   ALGORITHM=HS256
+   ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+   # Configuración de email con Mailgun
+   MAIL_SERVICE=mailgun
+   MAILGUN_API_KEY=tu_mailgun_api_key
+   MAILGUN_DOMAIN=tu_dominio.com
+   MAILGUN_BASE_URL=https://api.mailgun.net/v3
+   MAIL_FROM_EMAIL=noreply@tu_dominio.com
+   MAIL_FROM_NAME=Chacharitas
+
+   # Alternativa: Configuración SMTP (si prefieres usar SMTP)
+   # MAIL_SERVICE=smtp
+   # SMTP_SERVER=smtp.mailgun.org
+   # SMTP_PORT=587
+   # SMTP_USER=postmaster@tu_dominio.com
+   # SMTP_PASSWORD=tu_contraseña_mailgun
+   ```
+
+5. **Crea la base de datos**
    ```sql
-   USE chacharitas; -- El nombre de la base de datos puede variar
+   CREATE DATABASE chapiritas_db;
    ```
-2. Si existe la base de datos, Ejecuta npm run dev para correr el servidor de pruebas de Vite
+
+## 🚀 Ejecución
+
+1. **Inicia el servidor de desarrollo**
+
    ```bash
-   npm run dev
+   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
    ```
-2. Ejecuta php artisan serve para correr la página perse
-    ```bash
-    php artisan serve
-    ```
-   
-3. Interactúa con la  página y verifica en general si funciona. En caso de que no, revisa la documentación de Chacharitas (Web) para ver paso a paso como instalar el programa y los posibles pitfalls en el proceso.
 
-### II. Ejecutando la API
-
-Para poder alimentar con la base de datos de Laravel a Chacharitas App se creó una API que le proporcione a la aplicación móvil toda la información que pudiese llegar a necesitar. Su instalación es la siguiente
-
-1. Clona el repositorio
-   ```bash
-   git clone https://github.com/Fezto/chapiritas-v2.git
-   ```
-2. Genera un entorno virtual e instala todas las dependencias
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Ejecuta la API
-    ```bash
-    fastapi run
-    ```
-4. Dentro de la raíz del proyecto, genera tu archivo .env y llena la siguiente información
-    ```dotenv
-    DATABASE_USER=root
-    DATABASE_HOST=localhost
-    DATABASE_PASSWORD='<Inserta tu contraseña de MySQL aquí>'
-    DATABASE_NAME=chacharitas # Puede variar si colocaste otro nombre
-
-    JWT_SECRET='<Coloca un string cualquiera aquí>'
-    JWT_ALGORITHM=HS256
-    ACCESS_TOKEN_EXPIRE_MINUTE=15
-    REFRESH_TOKEN_EXPIRE_DAYS=7
-
-    MAIL_HOST=smtp.mailgun.org
-    MAIL_PORT=587
-    MAIL_USERNAME='<Cámbialo con lo que se te comparta'
-    MAIL_PASSWORD='<Cámbialo con lo que se te comparta'
-    MAIL_ENCRYPTION=tls
-    MAIL_FROM_ADDRESS=postmaster@mail.chacharitas.org
-    MAIL_FROM_NAME="Chacharitas"
-
-    #API_URL=https://api.chacharitas.org
-    API_URL=http://localhost:8000
-    ```
-5. Accede a la documentación
-    - Swagger UI: http://localhost:8000/docs
-    - ReDoc: http://localhost:8000/redoc
-
-
-
-    
+2. **Accede a la documentación**
+   - Swagger UI: http://localhost:8000/docs
+   - ReDoc: http://localhost:8000/redoc
 
 ## 📁 Estructura del Proyecto
 
@@ -214,25 +214,26 @@ GET /products/filter?categories=1,2&min_price=50&max_price=200&order_by=1
 ### Usando Docker (Recomendado)
 
 1. **Crea un Dockerfile**
+
    ```dockerfile
    FROM python:3.11-slim
-   
+
    WORKDIR /app
-   
+
    COPY requirements.txt .
    RUN pip install -r requirements.txt
-   
+
    COPY . .
-   
+
    EXPOSE 8000
-   
+
    CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
    ```
 
 2. **Construye y ejecuta**
    ```bash
-   docker build -t chapiritas-api .
-   docker run -p 8000:8000 --env-file .env chapiritas-api
+   docker build -t chacharitas-api .
+   docker run -p 8000:8000 --env-file .env chacharitas-api
    ```
 
 ### Usando un servidor
@@ -252,19 +253,25 @@ pytest
 
 ## 📝 Variables de Entorno
 
-| Variable | Descripción | Requerido |
-|----------|-------------|-----------|
-| `DATABASE_USER` | Usuario de MySQL | ✅ |
-| `DATABASE_HOST` | Host de MySQL | ✅ |
-| `DATABASE_PASSWORD` | Contraseña de MySQL | ✅ |
-| `DATABASE_NAME` | Nombre de la base de datos | ✅ |
-| `SECRET_KEY` | Clave secreta para JWT | ✅ |
-| `ALGORITHM` | Algoritmo de JWT (HS256) | ❌ |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | Expiración del token (30) | ❌ |
-| `SMTP_SERVER` | Servidor SMTP para emails | ❌ |
-| `SMTP_PORT` | Puerto SMTP (587) | ❌ |
-| `SMTP_USER` | Usuario SMTP | ❌ |
-| `SMTP_PASSWORD` | Contraseña SMTP | ❌ |
+| Variable                      | Descripción                      | Requerido |
+| ----------------------------- | -------------------------------- | --------- |
+| `DATABASE_USER`               | Usuario de MySQL                 | ✅        |
+| `DATABASE_HOST`               | Host de MySQL                    | ✅        |
+| `DATABASE_PASSWORD`           | Contraseña de MySQL              | ✅        |
+| `DATABASE_NAME`               | Nombre de la base de datos       | ✅        |
+| `SECRET_KEY`                  | Clave secreta para JWT           | ✅        |
+| `ALGORITHM`                   | Algoritmo de JWT (HS256)         | ❌        |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Expiración del token (30)        | ❌        |
+| `MAIL_SERVICE`                | Servicio de email (mailgun/smtp) | ❌        |
+| `MAILGUN_API_KEY`             | API Key de Mailgun               | ❌        |
+| `MAILGUN_DOMAIN`              | Dominio de Mailgun               | ❌        |
+| `MAILGUN_BASE_URL`            | URL base de Mailgun API          | ❌        |
+| `MAIL_FROM_EMAIL`             | Email remitente                  | ❌        |
+| `MAIL_FROM_NAME`              | Nombre del remitente             | ❌        |
+| `SMTP_SERVER`                 | Servidor SMTP (alternativo)      | ❌        |
+| `SMTP_PORT`                   | Puerto SMTP (587)                | ❌        |
+| `SMTP_USER`                   | Usuario SMTP                     | ❌        |
+| `SMTP_PASSWORD`               | Contraseña SMTP                  | ❌        |
 
 ## 🤝 Contribución
 
@@ -284,4 +291,4 @@ Para preguntas o sugerencias, puedes contactar al desarrollador.
 
 ---
 
-**¡Gracias por usar Chapiritas Reload API! 👟✨**
+**¡Gracias por usar Chacharitas API! 👟✨**
