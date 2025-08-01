@@ -1,8 +1,8 @@
-name: 🚀 Deploy LanaAPI to Chapiritas
+name: 🚀 Deploy Chacharitas API
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   deploy:
@@ -20,8 +20,8 @@ jobs:
       - name: Setup SSH agent with passphrase
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SSH_PASSPHRASE:  ${{ secrets.SSH_PASSPHRASE }}
-          SSH_HOST:        ${{ secrets.SSH_HOST }}
+          SSH_PASSPHRASE: ${{ secrets.SSH_PASSPHRASE }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
         run: |
           # Inicia el agente en el socket definido
           ssh-agent -a "$SSH_AUTH_SOCK" > /dev/null
@@ -49,11 +49,11 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << 'EOF'
             set -e
-            cd /root/lana-api
+            cd /root/chacharitas-api
             git fetch --all
             git reset --hard origin/main
             source .venv/bin/activate
             pip install --upgrade -r requirements.txt
-            systemctl restart lana-api
+            systemctl restart chacharitas-api.service
             nginx -t && systemctl reload nginx
           EOF
