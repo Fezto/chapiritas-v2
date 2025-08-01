@@ -14,7 +14,7 @@ MAIL_SERVICE=mailgun
 MAILGUN_API_KEY=tu_mailgun_api_key_aqui
 MAILGUN_DOMAIN=tu_dominio.mailgun.org
 MAILGUN_BASE_URL=https://api.mailgun.net/v3
-MAIL_FROM_EMAIL=noreply@tu_dominio.com  
+MAIL_FROM_EMAIL=noreply@tu_dominio.com
 MAIL_FROM_NAME=Chacharitas
 ```
 
