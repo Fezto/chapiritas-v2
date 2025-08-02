@@ -21,10 +21,11 @@ class ProductBase(SQLModel):
     description: Optional[str]
 
 class ProductCreate(ProductBase):
-    color_id: Optional[int]
-    gender_id: Optional[int]
-    material_id: Optional[int]
-    size_id: Optional[int]
+    # Relaciones many-to-many como listas de IDs
+    color_ids: Optional[List[int]] = Field(default=[], description="Lista de IDs de colores")
+    gender_ids: Optional[List[int]] = Field(default=[], description="Lista de IDs de géneros")
+    material_ids: Optional[List[int]] = Field(default=[], description="Lista de IDs de materiales")
+    size_ids: Optional[List[int]] = Field(default=[], description="Lista de IDs de tallas")
 
 class ProductUpdate(SQLModel):
     name: Optional[str] = None
@@ -33,6 +34,11 @@ class ProductUpdate(SQLModel):
     brand_id: Optional[int] = None
     category_id: Optional[int] = None
     description: Optional[str] = None
+    # Relaciones many-to-many como listas de IDs (opcional para updates)
+    color_ids: Optional[List[int]] = Field(default=None, description="Lista de IDs de colores")
+    gender_ids: Optional[List[int]] = Field(default=None, description="Lista de IDs de géneros")
+    material_ids: Optional[List[int]] = Field(default=None, description="Lista de IDs de materiales")
+    size_ids: Optional[List[int]] = Field(default=None, description="Lista de IDs de tallas")
 
 class ProductRead(SQLModel):
     id: int
