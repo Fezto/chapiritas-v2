@@ -1,10 +1,10 @@
 from typing import Optional
 
 from sqlmodel import Field, Relationship
-from app.models.base import BaseModelSimple
+from app.models.base import BaseModel
 
 
-class Image(BaseModelSimple, table=True):
+class Image(BaseModel, table=True):
     __tablename__ = 'images'
 
     product_id: int = Field(foreign_key="products.id")
